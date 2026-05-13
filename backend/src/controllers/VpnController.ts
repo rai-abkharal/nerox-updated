@@ -34,9 +34,11 @@ export class VpnController {
   static async endSession(req: AuthRequest, res: Response) {
     try {
       const { sessionId } = req.params;
+      const userId = req.user?.userId;
       if (!sessionId) return res.status(400).json({ error: 'Session ID is required' });
+      if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-      const result = await VpnService.endSession(sessionId as string);
+      const result = await VpnService.endSession(sessionId as string, userId);
       res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -75,21 +77,48 @@ export class VpnController {
       const userId = req.user?.userId;
 
       if (!sessionId || !userId) return res.status(400).json({ error: 'Session ID is required' });
+      const sent = Number(bytesSent || 0);
+      const received = Number(bytesReceived || 0);
+      if (!Number.isFinite(sent) || !Number.isFinite(received) || sent < 0 || received < 0) {
+        return res.status(400).json({ error: 'Traffic values must be non-negative numbers' });
+      }
 
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
 
+        const sessionRes = await client.query(
+          `SELECT session_id
+           FROM vpn_sessions
+           WHERE session_id = $1 AND user_id = $2 AND status = 'active'
+           FOR UPDATE`,
+          [sessionId, userId]
+        );
+
+        if (sessionRes.rows.length === 0) {
+          await client.query('ROLLBACK');
+          return res.status(404).json({ error: 'Active session not found' });
+        }
+
         // Insert into traffic stats
         await client.query(
           'INSERT INTO vpn_traffic_stats (session_id, bytes_sent, bytes_received) VALUES ($1, $2, $3)',
-          [sessionId, bytesSent, bytesReceived]
+          [sessionId, sent, received]
+        );
+
+        await client.query(
+          `UPDATE vpn_sessions
+           SET total_bytes_sent = COALESCE(total_bytes_sent, 0) + $1,
+               total_bytes_received = COALESCE(total_bytes_received, 0) + $2,
+               last_active_at = NOW()
+           WHERE session_id = $3`,
+          [sent, received, sessionId]
         );
 
         // Update user's daily usage
         await client.query(
           'UPDATE users SET daily_data_used_bytes = daily_data_used_bytes + $1 WHERE user_id = $2',
-          [bytesSent + bytesReceived, userId]
+          [sent + received, userId]
         );
 
         await client.query('COMMIT');

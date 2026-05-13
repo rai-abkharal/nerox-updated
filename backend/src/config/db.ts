@@ -27,11 +27,24 @@ const runMigrations = async () => {
         ALTER TABLE vpn_servers ADD COLUMN IF NOT EXISTS is_streaming_optimized BOOLEAN DEFAULT FALSE;
         ALTER TABLE vpn_servers ADD COLUMN IF NOT EXISTS cpu_usage INTEGER DEFAULT 0;
         ALTER TABLE vpn_servers ADD COLUMN IF NOT EXISTS avg_latency_ms INTEGER DEFAULT 0;
+        ALTER TABLE vpn_servers ADD COLUMN IF NOT EXISTS ssh_host TEXT;
+        ALTER TABLE vpn_servers ADD COLUMN IF NOT EXISTS ssh_port INTEGER DEFAULT 22;
+        ALTER TABLE vpn_servers ADD COLUMN IF NOT EXISTS ssh_user TEXT DEFAULT 'root';
+        ALTER TABLE vpn_servers ADD COLUMN IF NOT EXISTS wg_interface TEXT DEFAULT 'wg0';
+        ALTER TABLE vpn_servers ADD COLUMN IF NOT EXISTS wg_public_key TEXT;
+        ALTER TABLE vpn_servers ADD COLUMN IF NOT EXISTS wg_port INTEGER DEFAULT 51820;
+        ALTER TABLE vpn_servers ADD COLUMN IF NOT EXISTS wg_subnet CIDR DEFAULT '10.8.0.0/24';
+        ALTER TABLE vpn_servers ADD COLUMN IF NOT EXISTS endpoint_host TEXT;
+        ALTER TABLE vpn_servers ADD COLUMN IF NOT EXISTS endpoint_port INTEGER DEFAULT 51820;
+        ALTER TABLE vpn_servers ADD COLUMN IF NOT EXISTS dns_servers TEXT DEFAULT '1.1.1.1';
 
         ALTER TABLE vpn_sessions ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
         ALTER TABLE vpn_sessions ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
         ALTER TABLE vpn_sessions ADD COLUMN IF NOT EXISTS total_bytes_sent BIGINT DEFAULT 0;
         ALTER TABLE vpn_sessions ADD COLUMN IF NOT EXISTS total_bytes_received BIGINT DEFAULT 0;
+        ALTER TABLE vpn_sessions ADD COLUMN IF NOT EXISTS client_public_key TEXT;
+        ALTER TABLE vpn_sessions ADD COLUMN IF NOT EXISTS protocol_used VARCHAR(30) DEFAULT 'WireGuard';
+        ALTER TABLE vpn_sessions ADD COLUMN IF NOT EXISTS provisioned_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 
         ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS is_custom BOOLEAN DEFAULT FALSE;
         ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS features_meta JSONB DEFAULT '{}';
@@ -124,6 +137,14 @@ const runMigrations = async () => {
           reason TEXT,
           created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
         );
+
+        CREATE INDEX IF NOT EXISTS idx_vpn_servers_wireguard_ready
+          ON vpn_servers(status, protocol, is_premium);
+        CREATE INDEX IF NOT EXISTS idx_vpn_sessions_client_public_key
+          ON vpn_sessions(client_public_key);
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_vpn_sessions_active_server_ip
+          ON vpn_sessions(server_id, assigned_vpn_ip)
+          WHERE status = 'active';
       `);
 
       // Separate query for Seeding Data to prevent PostgreSQL parser errors

@@ -39,11 +39,16 @@ CREATE TABLE IF NOT EXISTS public.users (
     subscription_end_date TIMESTAMP WITH TIME ZONE,
     daily_data_limit_bytes BIGINT DEFAULT 524288000,
     daily_data_used_bytes BIGINT DEFAULT 0,
+    last_data_reset_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     avatar_url TEXT,
     display_name VARCHAR(255),
     referral_code VARCHAR(50) UNIQUE,
     split_tunneling_config JSONB DEFAULT '{}',
     preferred_protocol VARCHAR(50) DEFAULT 'Auto',
+    kill_switch_enabled BOOLEAN DEFAULT FALSE,
+    max_devices INTEGER DEFAULT 1,
+    authorized_regions TEXT[] DEFAULT ARRAY['Global'],
+    trial_started_at TIMESTAMP WITH TIME ZONE,
     is_active BOOLEAN DEFAULT TRUE,
     valid_from TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     valid_to TIMESTAMP WITH TIME ZONE,
@@ -66,6 +71,7 @@ CREATE TABLE IF NOT EXISTS public.faqs (
     category_id UUID REFERENCES public.faq_categories(id) ON DELETE CASCADE,
     question TEXT NOT NULL,
     answer_text_1 TEXT NOT NULL,
+    answer_text_2 TEXT,
     sort_order INTEGER DEFAULT 0
 );
 
@@ -109,7 +115,22 @@ CREATE TABLE IF NOT EXISTS public.vpn_servers (
     current_load INTEGER DEFAULT 0,
     protocol vpn_protocol NOT NULL,
     status vpn_status DEFAULT 'active',
-    last_health_check TIMESTAMP WITH TIME ZONE
+    is_premium BOOLEAN DEFAULT FALSE,
+    is_streaming_optimized BOOLEAN DEFAULT FALSE,
+    cpu_usage INTEGER DEFAULT 0,
+    avg_latency_ms INTEGER DEFAULT 0,
+    last_health_check TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    ssh_host TEXT,
+    ssh_port INTEGER DEFAULT 22,
+    ssh_user TEXT DEFAULT 'root',
+    wg_interface TEXT DEFAULT 'wg0',
+    wg_public_key TEXT,
+    wg_port INTEGER DEFAULT 51820,
+    wg_subnet CIDR DEFAULT '10.8.0.0/24',
+    endpoint_host TEXT,
+    endpoint_port INTEGER DEFAULT 51820,
+    dns_servers TEXT DEFAULT '1.1.1.1'
 );
 
 -- Network Definitions
@@ -136,10 +157,27 @@ CREATE TABLE IF NOT EXISTS public.vpn_sessions (
     server_id UUID REFERENCES public.vpn_servers(server_id) ON DELETE CASCADE,
     start_time TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     end_time TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    last_active_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     client_ip INET NOT NULL,
     assigned_vpn_ip INET NOT NULL,
-    status session_status DEFAULT 'active'
+    status session_status DEFAULT 'active',
+    total_bytes_sent BIGINT DEFAULT 0,
+    total_bytes_received BIGINT DEFAULT 0,
+    client_public_key TEXT,
+    protocol_used VARCHAR(30) DEFAULT 'WireGuard',
+    provisioned_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+CREATE INDEX IF NOT EXISTS idx_vpn_servers_wireguard_ready
+ON public.vpn_servers(status, protocol, is_premium);
+
+CREATE INDEX IF NOT EXISTS idx_vpn_sessions_client_public_key
+ON public.vpn_sessions(client_public_key);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_vpn_sessions_active_server_ip
+ON public.vpn_sessions(server_id, assigned_vpn_ip)
+WHERE status = 'active';
 
 -- Subscription Plans
 CREATE TABLE IF NOT EXISTS public.subscription_plans (
@@ -148,8 +186,10 @@ CREATE TABLE IF NOT EXISTS public.subscription_plans (
     duration_months INTEGER NOT NULL,
     price_usd DECIMAL(10,2) NOT NULL,
     features JSONB DEFAULT '{}',
+    features_meta JSONB DEFAULT '{}',
     max_devices INTEGER DEFAULT 5,
     is_active BOOLEAN DEFAULT TRUE,
+    is_custom BOOLEAN DEFAULT FALSE,
     google_product_id VARCHAR(255), -- Added for verification logic
     apple_product_id VARCHAR(255)   -- Added for verification logic
 );
@@ -170,11 +210,14 @@ CREATE TABLE IF NOT EXISTS public.subscriptions (
 CREATE TABLE IF NOT EXISTS public.payment_transactions (
     transaction_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     subscription_id UUID REFERENCES public.subscriptions(subscription_id) ON DELETE CASCADE,
+    user_id UUID REFERENCES public.users(user_id) ON DELETE SET NULL,
     amount DECIMAL(10,2) NOT NULL,
+    amount_paid DECIMAL(10,2),
     status transaction_status DEFAULT 'pending',
     processed_at TIMESTAMP WITH TIME ZONE,
     platform VARCHAR(50), -- Added for consistency with verify-purchase
-    purchase_token TEXT, -- Added for consistency with verify-purchase
+    product_id VARCHAR(255),
+    purchase_token TEXT UNIQUE, -- Added for consistency with verify-purchase
     verification_response JSONB -- Added for consistency with verify-purchase
 );
 
