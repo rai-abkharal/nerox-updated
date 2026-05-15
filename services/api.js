@@ -1,10 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ✅ Use this for PHYSICAL Android phone (your PC's WiFi IP)
-const API_URL = 'http://192.168.0.102:5000/api';
+const API_URL = 'https://162.243.197.241/api';
 
 // 🖥️ Use this for ANDROID EMULATOR instead (comment out the one above)
-// const API_URL = 'http://10.0.2.2:5000/api';
 
 class Api {
   async getAuthToken() {
