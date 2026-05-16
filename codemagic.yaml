@@ -33,19 +33,35 @@ workflows:
             <string>app-store</string>
             <key>teamID</key>
             <string>6ZN7399P3U</string>
-            <key>uploadBitcode</key>
-            <false/>
-            <key>uploadSymbols</key>
-            <true/>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>org.reactjs.native.example.Nerox</key>
+              <string>vpn</string>
+            </dict>
           </dict>
           </plist>
           EOF
       - name: Build iOS IPA
         script: |
-          xcode-project build-ipa \
-            --workspace ios/Nerox.xcworkspace \
-            --scheme Nerox \
-            --export-options-plist /tmp/export_options.plist
+          xcodebuild \
+            -workspace ios/Nerox.xcworkspace \
+            -scheme Nerox \
+            -configuration Release \
+            -archivePath build/Nerox.xcarchive \
+            archive \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM=6ZN7399P3U \
+            PROVISIONING_PROFILE_SPECIFIER=vpn \
+            CODE_SIGN_IDENTITY="iPhone Distribution" \
+            COMPILER_INDEX_STORE_ENABLE=NO
+
+          xcodebuild \
+            -exportArchive \
+            -archivePath build/Nerox.xcarchive \
+            -exportOptionsPlist /tmp/export_options.plist \
+            -exportPath build/ios/ipa
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
