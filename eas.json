@@ -13,10 +13,13 @@
     },
     "production": {
       "autoIncrement": true,
+      "env": {
+        "NO_FLIPPER": "1"
+      },
       "ios": {
         "image": "latest",
         "cache": {
-          "key": "pods-cache-v1",
+          "key": "pods-cache-v2",
           "paths": [
             "ios/Pods"
           ]
