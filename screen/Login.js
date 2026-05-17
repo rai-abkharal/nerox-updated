@@ -9,7 +9,7 @@ import {
   ImageBackground,
   Pressable,
   SafeAreaView,
-  Alert
+  Alert,
 } from 'react-native';
 import {TextInput} from 'react-native-paper';
 import Entypo from 'react-native-vector-icons/Entypo';
@@ -25,7 +25,7 @@ export default function Login({navigation}) {
   const [errors, setErrors] = React.useState({});
   const [loading, setLoading] = React.useState(false);
 
-  const validateEmail = (email) => {
+  const validateEmail = email => {
     return /^\S+@\S+\.\S+$/.test(email);
   };
 
@@ -59,8 +59,15 @@ export default function Login({navigation}) {
         navigation.replace('MainScreen');
       }
     } catch (err) {
+      console.error('[Auth] Sign in failed', {
+        message: err?.message,
+        stack: err?.stack,
+      });
       setLoading(false);
-      Alert.alert('Sign In Failed', err.message || 'Invalid email or password.');
+      Alert.alert(
+        'Sign In Failed',
+        err.message || 'Invalid email or password.',
+      );
     } finally {
       setLoading(false);
     }
@@ -82,13 +89,18 @@ export default function Login({navigation}) {
 
         <View style={styles.content}>
           <Text style={styles.title}>Nerox</Text>
-          <Text style={styles.subtitle}>Sign in to your account and stay protected</Text>
+          <Text style={styles.subtitle}>
+            Sign in to your account and stay protected
+          </Text>
 
           <View style={styles.inputContainer}>
             <TextInput
               label="Email Address"
               value={Email}
-              onChangeText={(text) => {setEmail(text); setErrors({...errors, email: null});}}
+              onChangeText={text => {
+                setEmail(text);
+                setErrors({...errors, email: null});
+              }}
               mode="outlined"
               style={styles.input}
               outlineColor="#171B2E"
@@ -100,10 +112,12 @@ export default function Login({navigation}) {
               keyboardType="email-address"
               theme={{
                 roundness: 15,
-                colors: { primary: '#6B8F04', onSurfaceVariant: '#A1A1AC' }
+                colors: {primary: '#6B8F04', onSurfaceVariant: '#A1A1AC'},
               }}
             />
-            {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+            {errors.email && (
+              <Text style={styles.errorText}>{errors.email}</Text>
+            )}
 
             <View style={{height: 15}} />
 
@@ -111,7 +125,10 @@ export default function Login({navigation}) {
               label="Password"
               value={Password}
               secureTextEntry={!showPassword}
-              onChangeText={(text) => {setPassword(text); setErrors({...errors, password: null});}}
+              onChangeText={text => {
+                setPassword(text);
+                setErrors({...errors, password: null});
+              }}
               mode="outlined"
               style={styles.input}
               outlineColor="#171B2E"
@@ -121,16 +138,24 @@ export default function Login({navigation}) {
               textColor="#fff"
               theme={{
                 roundness: 15,
-                colors: { primary: '#6B8F04', onSurfaceVariant: '#A1A1AC' }
+                colors: {primary: '#6B8F04', onSurfaceVariant: '#A1A1AC'},
               }}
               right={
                 <TextInput.Icon
-                  icon={() => <Entypo name={showPassword ? 'eye-with-line' : 'eye'} size={20} color="#A1A1AC" />}
+                  icon={() => (
+                    <Entypo
+                      name={showPassword ? 'eye-with-line' : 'eye'}
+                      size={20}
+                      color="#A1A1AC"
+                    />
+                  )}
                   onPress={() => setShowPassword(!showPassword)}
                 />
               }
             />
-            {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+            {errors.password && (
+              <Text style={styles.errorText}>{errors.password}</Text>
+            )}
           </View>
 
           <View style={styles.buttonSection}>

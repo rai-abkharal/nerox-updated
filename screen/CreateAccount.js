@@ -9,7 +9,7 @@ import {
   ImageBackground,
   Pressable,
   SafeAreaView,
-  Alert
+  Alert,
 } from 'react-native';
 import {TextInput} from 'react-native-paper';
 import Entypo from 'react-native-vector-icons/Entypo';
@@ -29,7 +29,7 @@ export default function CreateAccount({navigation}) {
   const [loading, setLoading] = React.useState(false);
   const [ReferralCode, setReferralCode] = React.useState('');
 
-  const validateEmail = (email) => {
+  const validateEmail = email => {
     return /^\S+@\S+\.\S+$/.test(email);
   };
 
@@ -69,13 +69,22 @@ export default function CreateAccount({navigation}) {
 
       if (res.success && res.token) {
         await AsyncStorage.setItem('auth_token', res.token);
-        Alert.alert('Success', 'Account created successfully! You are now on the Free Plan.', [
-          { text: 'OK', onPress: () => navigation.replace('MainScreen') }
-        ]);
+        Alert.alert(
+          'Success',
+          'Account created successfully! You are now on the Free Plan.',
+          [{text: 'OK', onPress: () => navigation.replace('MainScreen')}],
+        );
       }
     } catch (err) {
+      console.error('[Auth] Sign up failed', {
+        message: err?.message,
+        stack: err?.stack,
+      });
       setLoading(false);
-      Alert.alert('Sign Up Failed', err.message || 'An unexpected error occurred. Please try again.');
+      Alert.alert(
+        'Sign Up Failed',
+        err.message || 'An unexpected error occurred. Please try again.',
+      );
     } finally {
       setLoading(false);
     }
@@ -97,13 +106,18 @@ export default function CreateAccount({navigation}) {
 
         <View style={styles.content}>
           <Text style={styles.title}>Nerox</Text>
-          <Text style={styles.subtitle}>Create account and enjoy 7 day free trial</Text>
+          <Text style={styles.subtitle}>
+            Create account and enjoy 7 day free trial
+          </Text>
 
           <View style={styles.inputContainer}>
             <TextInput
               label="Full Name"
               value={FullName}
-              onChangeText={(text) => {setFullName(text); setErrors({...errors, fullName: null});}}
+              onChangeText={text => {
+                setFullName(text);
+                setErrors({...errors, fullName: null});
+              }}
               mode="outlined"
               style={styles.input}
               outlineColor="#171B2E"
@@ -114,16 +128,21 @@ export default function CreateAccount({navigation}) {
               placeholderTextColor="#A1A1AC"
               theme={{
                 roundness: 15,
-                colors: { primary: '#6B8F04', onSurfaceVariant: '#A1A1AC' }
+                colors: {primary: '#6B8F04', onSurfaceVariant: '#A1A1AC'},
               }}
             />
-            {errors.fullName && <Text style={styles.errorText}>{errors.fullName}</Text>}
+            {errors.fullName && (
+              <Text style={styles.errorText}>{errors.fullName}</Text>
+            )}
 
             <View style={{height: 15}} />
             <TextInput
               label="Email Address"
               value={Email}
-              onChangeText={(text) => {setEmail(text); setErrors({...errors, email: null});}}
+              onChangeText={text => {
+                setEmail(text);
+                setErrors({...errors, email: null});
+              }}
               mode="outlined"
               style={styles.input}
               outlineColor="#171B2E"
@@ -134,17 +153,22 @@ export default function CreateAccount({navigation}) {
               autoCapitalize="none"
               theme={{
                 roundness: 15,
-                colors: { primary: '#6B8F04', onSurfaceVariant: '#A1A1AC' }
+                colors: {primary: '#6B8F04', onSurfaceVariant: '#A1A1AC'},
               }}
             />
-            {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+            {errors.email && (
+              <Text style={styles.errorText}>{errors.email}</Text>
+            )}
 
             <View style={{height: 15}} />
             <TextInput
               label="Password"
               value={Password}
               secureTextEntry={!showPassword}
-              onChangeText={(text) => {setPassword(text); setErrors({...errors, password: null});}}
+              onChangeText={text => {
+                setPassword(text);
+                setErrors({...errors, password: null});
+              }}
               mode="outlined"
               style={styles.input}
               outlineColor="#171B2E"
@@ -154,23 +178,34 @@ export default function CreateAccount({navigation}) {
               textColor="#fff"
               theme={{
                 roundness: 15,
-                colors: { primary: '#6B8F04', onSurfaceVariant: '#A1A1AC' }
+                colors: {primary: '#6B8F04', onSurfaceVariant: '#A1A1AC'},
               }}
               right={
                 <TextInput.Icon
-                  icon={() => <Entypo name={showPassword ? 'eye-with-line' : 'eye'} size={20} color="#A1A1AC" />}
+                  icon={() => (
+                    <Entypo
+                      name={showPassword ? 'eye-with-line' : 'eye'}
+                      size={20}
+                      color="#A1A1AC"
+                    />
+                  )}
                   onPress={() => setShowPassword(!showPassword)}
                 />
               }
             />
-            {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+            {errors.password && (
+              <Text style={styles.errorText}>{errors.password}</Text>
+            )}
 
             <View style={{height: 15}} />
             <TextInput
               label="Confirm Password"
               value={ConfirmPassword}
               secureTextEntry={!showConfirmPassword}
-              onChangeText={(text) => {setConfirmPassword(text); setErrors({...errors, confirmPassword: null});}}
+              onChangeText={text => {
+                setConfirmPassword(text);
+                setErrors({...errors, confirmPassword: null});
+              }}
               mode="outlined"
               style={styles.input}
               outlineColor="#171B2E"
@@ -180,16 +215,24 @@ export default function CreateAccount({navigation}) {
               textColor="#fff"
               theme={{
                 roundness: 15,
-                colors: { primary: '#6B8F04', onSurfaceVariant: '#A1A1AC' }
+                colors: {primary: '#6B8F04', onSurfaceVariant: '#A1A1AC'},
               }}
               right={
                 <TextInput.Icon
-                  icon={() => <Entypo name={showConfirmPassword ? 'eye-with-line' : 'eye'} size={20} color="#A1A1AC" />}
+                  icon={() => (
+                    <Entypo
+                      name={showConfirmPassword ? 'eye-with-line' : 'eye'}
+                      size={20}
+                      color="#A1A1AC"
+                    />
+                  )}
                   onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                 />
               }
             />
-            {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
+            {errors.confirmPassword && (
+              <Text style={styles.errorText}>{errors.confirmPassword}</Text>
+            )}
 
             <View style={{height: 15}} />
             <TextInput
@@ -206,7 +249,7 @@ export default function CreateAccount({navigation}) {
               autoCapitalize="characters"
               theme={{
                 roundness: 15,
-                colors: { primary: '#6B8F04', onSurfaceVariant: '#A1A1AC' }
+                colors: {primary: '#6B8F04', onSurfaceVariant: '#A1A1AC'},
               }}
             />
           </View>
