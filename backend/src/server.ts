@@ -15,14 +15,17 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust proxy (Nginx/DigitalOcean ke liye zaroori)
+app.set('trust proxy', 1);
+
 // Security Middleware
 app.use(helmet());
 app.use(cors());
 
-// Rate Limiting
+// Rate Limiting - Testing ke liye relaxed
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100000000,
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -44,13 +47,9 @@ app.get('/health', (req, res) => {
 
 const startServer = async () => {
   try {
-    // Connect to DB
     await pool.query('SELECT NOW()');
     console.log('PostgreSQL Connected');
-
-    // Connect to Redis
     await connectRedis();
-
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
       VpnService.startMonitoring();
