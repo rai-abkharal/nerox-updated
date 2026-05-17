@@ -1,5 +1,5 @@
-import pool from '../config/db';
-import { v4 as uuidv4 } from 'uuid';
+  import pool from '../config/db';
+const { v4: uuidv4 } = require('uuid');
 
 export class ReferralService {
   /**
