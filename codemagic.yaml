@@ -18,10 +18,10 @@ workflows:
         script: |
           cd ios
 
-          # 1. WireGuardKit Podfile mein add karo
+          # 1. WireGuardKit Podfile mein add karo (CocoaPods trunk se)
           echo "" >> Podfile
           echo "target 'PacketTunnel' do" >> Podfile
-          echo "  pod 'WireGuardKit', :git => 'https://github.com/WireGuard/wireguard-apple', :tag => '1.0.16-27'" >> Podfile
+          echo "  pod 'WireGuardKit'" >> Podfile
           echo "end" >> Podfile
 
           # 2. Entitlements file banao
