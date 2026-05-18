@@ -7,7 +7,7 @@ workflows:
       app_store_connect: Codemagic
     environment:
       node: 20
-      xcode: 16.4
+      xcode: 26.4
       cocoapods: default
       ios_signing:
         distribution_type: app_store
