@@ -57,7 +57,7 @@ workflows:
 
             # WireGuardKit SPM add karo
             package_ref = project.new(Xcodeproj::Project::Object::XCRemoteSwiftPackageReference)
-            package_ref.repositoryURL = 'https://github.com/WireGuard/wireguard-apple.git'
+            package_ref.repositoryURL = 'https://github.com/passepartoutvpn/wireguard-apple.git'
             package_ref.requirement = { 'kind' => 'branch', 'branch' => 'master' }
             project.root_object.package_references << package_ref
 
