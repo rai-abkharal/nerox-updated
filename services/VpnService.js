@@ -1,3 +1,4 @@
+import { NativeModules } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from './api';
 
@@ -166,13 +167,10 @@ class VpnService {
       const session = await api.post('/sessions', { serverId });
       
       console.log(`[VpnService] Session created: ${session.session_id}`);
-      console.log(`[VpnService] Configuration received (Encrypted): \n${session.config}`);
-      
-      const decryptedConfig = this.decryptConfig(session.config);
-      console.log(`[VpnService] Configuration Decrypted`);
+      console.log(`[VpnService] WireGuard configuration received for ${session.server?.hostname || 'server'}`);
 
       this.setStatus('Securing Tunnel...');
-      await this.startNativeTunnel(session.assigned_vpn_ip, decryptedConfig, session.splitTunneling);
+      await this.startNativeTunnel(session.assigned_vpn_ip, session.config, session.splitTunneling);
 
       if (this.currentState === VPN_STATES.DISCONNECTED) {
         this.activeSession = session;
@@ -279,23 +277,25 @@ class VpnService {
   }
 
   async startNativeTunnel(ip, config, splitTunneling) {
-    console.log(`[NativeTunnel] Starting tunnel for IP: ${ip}`);
-    if (splitTunneling && splitTunneling.allowedApps) {
-      console.log(`[NativeTunnel] Applying split tunneling for ${splitTunneling.allowedApps.length} apps`);
+    const { WireGuardTunnel } = NativeModules;
+    if (!WireGuardTunnel || !WireGuardTunnel.start) {
+      throw new Error('Native WireGuard module is not linked in this build. Rebuild the native Android/iOS app.');
     }
-    return new Promise((resolve) => setTimeout(resolve, 2000));
-  }
 
-  decryptConfig(encryptedData) {
-    // In a real app, use a crypto library like react-native-aes or crypto-js
-    // For this simulation, we'll acknowledge the encrypted format but return the "raw" simulation
-    console.log('[Security] Decrypting config using local device key...');
-    return "client\ndev tun\nproto udp\n..."; // Simplified mock return
+    console.log(`[NativeTunnel] Starting real WireGuard tunnel for IP: ${ip}`);
+    if (splitTunneling && splitTunneling.allowedApps) {
+      console.log(`[NativeTunnel] Split tunneling config received for ${splitTunneling.allowedApps.length} apps`);
+    }
+
+    return await WireGuardTunnel.start(config);
   }
 
   async stopNativeTunnel() {
-    console.log('[NativeTunnel] Stopping tunnel');
-    return new Promise((resolve) => setTimeout(resolve, 500));
+    const { WireGuardTunnel } = NativeModules;
+    if (!WireGuardTunnel || !WireGuardTunnel.stop) return false;
+
+    console.log('[NativeTunnel] Stopping real WireGuard tunnel');
+    return await WireGuardTunnel.stop();
   }
 }
 

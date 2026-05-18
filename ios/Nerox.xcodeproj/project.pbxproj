@@ -14,6 +14,8 @@
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
 		7699B88040F8A987B510C191 /* libPods-Nerox-NeroxTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 19F6CBCC0A4E27FBF8BF4A61 /* libPods-Nerox-NeroxTests.a */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
+		A1B2C3D4E5F6000000000003 /* WireGuardTunnel.m in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000002 /* WireGuardTunnel.m */; };
+		A1B2C3D4E5F6000000000005 /* NetworkExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000004 /* NetworkExtension.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -44,6 +46,9 @@
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = Nerox/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		89C6BE57DB24E9ADA2F236DE /* Pods-Nerox-NeroxTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Nerox-NeroxTests.release.xcconfig"; path = "Target Support Files/Pods-Nerox-NeroxTests/Pods-Nerox-NeroxTests.release.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
+		A1B2C3D4E5F6000000000001 /* WireGuardTunnel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = WireGuardTunnel.h; path = Nerox/WireGuardTunnel.h; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000000000002 /* WireGuardTunnel.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = WireGuardTunnel.m; path = Nerox/WireGuardTunnel.m; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000000000004 /* NetworkExtension.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = NetworkExtension.framework; path = System/Library/Frameworks/NetworkExtension.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -60,6 +65,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0C80B921A6F3F58F76C31292 /* libPods-Nerox.a in Frameworks */,
+				A1B2C3D4E5F6000000000005 /* NetworkExtension.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -88,6 +94,8 @@
 			children = (
 				13B07FAF1A68108700A75B9A /* AppDelegate.h */,
 				13B07FB01A68108700A75B9A /* AppDelegate.mm */,
+				A1B2C3D4E5F6000000000001 /* WireGuardTunnel.h */,
+				A1B2C3D4E5F6000000000002 /* WireGuardTunnel.m */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
@@ -100,6 +108,7 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
+				A1B2C3D4E5F6000000000004 /* NetworkExtension.framework */,
 				5DCACB8F33CDC322A6C60F78 /* libPods-Nerox.a */,
 				19F6CBCC0A4E27FBF8BF4A61 /* libPods-Nerox-NeroxTests.a */,
 			);
@@ -393,6 +402,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */,
+				A1B2C3D4E5F6000000000003 /* WireGuardTunnel.m in Sources */,
 				13B07FC11A68108700A75B9A /* main.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
