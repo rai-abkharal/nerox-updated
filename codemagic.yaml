@@ -17,63 +17,60 @@ workflows:
       - name: Setup PacketTunnel Target
         script: |
           cd ios
-
-          # 1. Update Podfile with platform version and PacketTunnel target
+          
           sed -i '' "s/platform :ios, '[0-9.]*'/platform :ios, '15.0'/" Podfile
           
-          # Add PacketTunnel target with explicit platform
-          cat >> Podfile << 'EOF'
-
-target 'PacketTunnel' do
-  platform :ios, '15.0'
-  pod 'WireGuardKit', '~> 1.0'
-end
-EOF
-
-          # 2. Create PacketTunnel directory and entitlements file
+          echo "" >> Podfile
+          echo "target 'PacketTunnel' do" >> Podfile
+          echo "  platform :ios, '15.0'" >> Podfile
+          echo "  pod 'WireGuardKit', '~> 1.0'" >> Podfile
+          echo "end" >> Podfile
+          
           mkdir -p PacketTunnel
-          cat > PacketTunnel/PacketTunnel.entitlements << 'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>com.apple.developer.networking.networkextension</key>
-    <array>
-        <string>packet-tunnel-provider</string>
-    </array>
-</dict>
-</plist>
-EOF
+          
+          cat > PacketTunnel/PacketTunnel.entitlements << 'ENTITLEMENTS'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>com.apple.developer.networking.networkextension</key>
+              <array>
+                  <string>packet-tunnel-provider</string>
+              </array>
+          </dict>
+          </plist>
+          ENTITLEMENTS
+          
           echo "Entitlements created!"
-
-          # 3. Add PacketTunnel target to Xcode project
+          
           gem install xcodeproj --quiet
-          ruby << 'RUBY'
-require 'xcodeproj'
-project = Xcodeproj::Project.open('Nerox.xcodeproj')
-
-if project.targets.find { |t| t.name == 'PacketTunnel' }
-  puts 'PacketTunnel target already exists, skipping.'
-else
-  target = project.new_target(:app_extension, 'PacketTunnel', :ios, '15.0')
-  group = project.main_group.new_group('PacketTunnel', 'PacketTunnel')
-  file_ref = group.new_file('PacketTunnelProvider.swift')
-  target.source_build_phase.add_file_reference(file_ref)
-  
-  target.build_configurations.each do |config|
-    config.build_settings['SWIFT_VERSION'] = '5.0'
-    config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
-    config.build_settings['CODE_SIGN_STYLE'] = 'Manual'
-    config.build_settings['DEVELOPMENT_TEAM'] = '6ZN7399P3U'
-    config.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'org.reactjs.native.example.Nerox.PacketTunnel'
-    config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'PacketTunnel/PacketTunnel.entitlements'
-    config.build_settings['PROVISIONING_PROFILE_SPECIFIER'] = 'Nerox PacketTunnel'
-  end
-  
-  project.save
-  puts 'PacketTunnel target added successfully!'
-end
-RUBY
+          
+          ruby << 'RUBYSCRIPT'
+          require 'xcodeproj'
+          project = Xcodeproj::Project.open('Nerox.xcodeproj')
+          
+          if project.targets.find { |t| t.name == 'PacketTunnel' }
+            puts 'PacketTunnel target already exists, skipping.'
+          else
+            target = project.new_target(:app_extension, 'PacketTunnel', :ios, '15.0')
+            group = project.main_group.new_group('PacketTunnel', 'PacketTunnel')
+            file_ref = group.new_file('PacketTunnelProvider.swift')
+            target.source_build_phase.add_file_reference(file_ref)
+            
+            target.build_configurations.each do |config|
+              config.build_settings['SWIFT_VERSION'] = '5.0'
+              config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+              config.build_settings['CODE_SIGN_STYLE'] = 'Manual'
+              config.build_settings['DEVELOPMENT_TEAM'] = '6ZN7399P3U'
+              config.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'org.reactjs.native.example.Nerox.PacketTunnel'
+              config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'PacketTunnel/PacketTunnel.entitlements'
+              config.build_settings['PROVISIONING_PROFILE_SPECIFIER'] = 'Nerox PacketTunnel'
+            end
+            
+            project.save
+            puts 'PacketTunnel target added successfully!'
+          end
+          RUBYSCRIPT
 
       - name: Install pods
         script: |
@@ -88,27 +85,28 @@ RUBY
 
       - name: Create export options
         script: |
-          cat > /tmp/export_options.plist << 'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>method</key>
-    <string>app-store</string>
-    <key>teamID</key>
-    <string>6ZN7399P3U</string>
-    <key>signingStyle</key>
-    <string>manual</string>
-    <key>provisioningProfiles</key>
-    <dict>
-        <key>org.reactjs.native.example.Nerox</key>
-        <string>a73d87ae-dfa9-40a2-b257-f1e05e4ce5a1</string>
-        <key>org.reactjs.native.example.Nerox.PacketTunnel</key>
-        <string>Nerox PacketTunnel</string>
-    </dict>
-</dict>
-</plist>
-EOF
+          cat > /tmp/export_options.plist << 'EXPORTOPTIONS'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>app-store</string>
+              <key>teamID</key>
+              <string>6ZN7399P3U</string>
+              <key>signingStyle</key>
+              <string>manual</string>
+              <key>provisioningProfiles</key>
+              <dict>
+                  <key>org.reactjs.native.example.Nerox</key>
+                  <string>a73d87ae-dfa9-40a2-b257-f1e05e4ce5a1</string>
+                  <key>org.reactjs.native.example.Nerox.PacketTunnel</key>
+                  <string>Nerox PacketTunnel</string>
+              </dict>
+          </dict>
+          </plist>
+          EXPORTOPTIONS
+          
           echo "Export options created!"
 
       - name: Build iOS IPA
