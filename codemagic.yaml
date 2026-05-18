@@ -24,7 +24,7 @@ workflows:
 
           target 'PacketTunnel' do
             platform :ios, '15.0'
-            pod 'WireGuardKit', :git => 'https://github.com/WireGuard/wireguard-apple.git', :tag => '1.1.3'
+            pod 'WireGuardKit', :git => 'https://github.com/WireGuard/wireguard-apple.git', :branch => 'master'
           end
           PODFILE_END
           
