@@ -41,9 +41,22 @@ workflows:
 
           unless project.targets.find { |t| t.name == 'PacketTunnel' }
             target = project.new_target(:app_extension, 'PacketTunnel', :ios, '15.0')
-            group = project.main_group.new_group('PacketTunnel', 'PacketTunnel')
-            file_ref = group.new_file('PacketTunnelProvider.swift')
-            target.source_build_phase.add_file_reference(file_ref)
+
+            pt_group = project.main_group.new_group('PacketTunnel', 'PacketTunnel')
+            pt_file = pt_group.new_file('PacketTunnelProvider.swift')
+            target.source_build_phase.add_file_reference(pt_file)
+
+            wgkit_group = project.main_group.new_group('WireGuardKit', 'WireGuardKit')
+            Dir.glob('WireGuardKit/*.swift').each do |f|
+              ref = wgkit_group.new_file(File.basename(f))
+              target.source_build_phase.add_file_reference(ref)
+            end
+
+            wgkitc_group = project.main_group.new_group('WireGuardKitC', 'WireGuardKitC')
+            Dir.glob('WireGuardKitC/*.{c,h}').each do |f|
+              ref = wgkitc_group.new_file(File.basename(f))
+              target.source_build_phase.add_file_reference(ref)
+            end
 
             target.build_configurations.each do |config|
               config.build_settings['SWIFT_VERSION'] = '5.0'
@@ -52,22 +65,11 @@ workflows:
               config.build_settings['DEVELOPMENT_TEAM'] = '6ZN7399P3U'
               config.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'org.reactjs.native.example.Nerox.PacketTunnel'
               config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'PacketTunnel/PacketTunnel.entitlements'
-              config.build_settings['PROVISIONING_PROFILE_SPECIFIER'] = ''
+              config.build_settings['HEADER_SEARCH_PATHS'] = '$(SRCROOT)/WireGuardKitC'
             end
 
-            # WireGuardKit SPM add karo
-            package_ref = project.new(Xcodeproj::Project::Object::XCRemoteSwiftPackageReference)
-            package_ref.repositoryURL = 'https://github.com/WireGuard/wireguard-apple.git'
-            package_ref.requirement = { 'kind' => 'exactVersion', 'version' => '1.0.20230223' }
-            project.root_object.package_references << package_ref
-
-            dep = project.new(Xcodeproj::Project::Object::XCSwiftPackageProductDependency)
-            dep.package = package_ref
-            dep.product_name = 'WireGuardKit'
-            target.package_product_dependencies << dep
-
             project.save
-            puts 'PacketTunnel + WireGuardKit added!'
+            puts 'PacketTunnel with local WireGuardKit added!'
           end
           RUBYSCRIPT
 
