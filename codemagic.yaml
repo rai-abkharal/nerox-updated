@@ -18,7 +18,8 @@ workflows:
         script: |
           cd ios
 
-          # 1. WireGuardKit Podfile mein add karo (CocoaPods trunk se)
+          # 1. Podfile mein platform version 15.0 aur WireGuardKit update karo
+          sed -i '' "s/platform :ios, '[0-9.]*'/platform :ios, '15.0'/" Podfile
           echo "" >> Podfile
           echo "target 'PacketTunnel' do" >> Podfile
           echo "  pod 'WireGuardKit'" >> Podfile
@@ -36,12 +37,13 @@ workflows:
           if project.targets.find { |t| t.name == 'PacketTunnel' }
             puts 'PacketTunnel target already exists, skipping.'
           else
-            target = project.new_target(:app_extension, 'PacketTunnel', :ios, '13.0')
+            target = project.new_target(:app_extension, 'PacketTunnel', :ios, '15.0')
             group = project.main_group.new_group('PacketTunnel', 'PacketTunnel')
             file_ref = group.new_file('PacketTunnelProvider.swift')
             target.source_build_phase.add_file_reference(file_ref)
             target.build_configurations.each do |config|
               config.build_settings['SWIFT_VERSION'] = '5.0'
+              config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
               config.build_settings['CODE_SIGN_STYLE'] = 'Manual'
               config.build_settings['DEVELOPMENT_TEAM'] = '6ZN7399P3U'
               config.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'org.reactjs.native.example.Nerox.PacketTunnel'
