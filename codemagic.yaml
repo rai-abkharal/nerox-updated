@@ -73,7 +73,8 @@ workflows:
 
             package_ref = project.new(Xcodeproj::Project::Object::XCRemoteSwiftPackageReference)
             package_ref.repositoryURL = 'https://github.com/WireGuard/wireguard-apple.git'
-            package_ref.requirement = { 'kind' => 'upToNextMajorVersion', 'minimumVersion' => '1.0.0' }
+            # ← YAHI FIX HAI: version ki jagah branch use karo
+            package_ref.requirement = { 'kind' => 'branch', 'branch' => 'master' }
             project.root_object.package_references << package_ref
 
             dep = project.new(Xcodeproj::Project::Object::XCSwiftPackageProductDependency)
