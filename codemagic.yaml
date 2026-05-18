@@ -5,7 +5,7 @@ workflows:
     instance_type: mac_mini_m2
     environment:
       node: 20
-      xcode: latest
+      xcode: 15.4
       cocoapods: default
       ios_signing:
         distribution_type: app_store
@@ -17,14 +17,12 @@ workflows:
       - name: Setup PacketTunnel Target
         script: |
           cd ios
-          
+
           sed -i '' "s/platform :ios, '[0-9.]*'/platform :ios, '15.0'/" Podfile
-          
-          echo "Podfile updated to iOS 15.0"
-          
+
           mkdir -p PacketTunnel
-          
-          cat > PacketTunnel/PacketTunnel.entitlements << 'ENTITLEMENTS_END'
+
+          cat > PacketTunnel/PacketTunnel.entitlements << 'ENTITLEMENTS'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -35,28 +33,34 @@ workflows:
               </array>
           </dict>
           </plist>
-          ENTITLEMENTS_END
-          
-          echo "Entitlements file created"
-          
+          ENTITLEMENTS
+
+          cat > PacketTunnel/PacketTunnelProvider.swift << 'SWIFT'
+          import NetworkExtension
+          import WireGuardKit
+
+          class PacketTunnelProvider: NEPacketTunnelProvider {
+              override func startTunnel(options: [String: NSObject]?, completionHandler: @escaping (Error?) -> Void) {
+                  completionHandler(nil)
+              }
+              override func stopTunnel(with reason: NEProviderStopReason, completionHandler: @escaping () -> Void) {
+                  completionHandler()
+              }
+          }
+          SWIFT
+
           gem install xcodeproj --quiet
-          
-          ruby << 'RUBY_END'
+
+          ruby << 'RUBYSCRIPT'
           require 'xcodeproj'
-          
-          project_path = 'Nerox.xcodeproj'
-          project = Xcodeproj::Project.open(project_path)
-          
-          if project.targets.find { |t| t.name == 'PacketTunnel' }
-            puts 'PacketTunnel target already exists, skipping.'
-          else
-            puts 'Creating PacketTunnel target...'
-            
+          project = Xcodeproj::Project.open('Nerox.xcodeproj')
+
+          unless project.targets.find { |t| t.name == 'PacketTunnel' }
             target = project.new_target(:app_extension, 'PacketTunnel', :ios, '15.0')
             group = project.main_group.new_group('PacketTunnel', 'PacketTunnel')
             file_ref = group.new_file('PacketTunnelProvider.swift')
             target.source_build_phase.add_file_reference(file_ref)
-            
+
             target.build_configurations.each do |config|
               config.build_settings['SWIFT_VERSION'] = '5.0'
               config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
@@ -66,62 +70,25 @@ workflows:
               config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'PacketTunnel/PacketTunnel.entitlements'
               config.build_settings['PROVISIONING_PROFILE_SPECIFIER'] = 'Nerox PacketTunnel'
             end
-            
-            project.save
-            puts 'PacketTunnel target created successfully!'
-          end
-          RUBY_END
 
-      - name: Add WireGuardKit via Swift Package Manager
-        script: |
-          cd ios
-          
-          gem install xcodeproj --quiet
-          
-          ruby << 'RUBY_SPM'
-          require 'xcodeproj'
-          
-          project_path = 'Nerox.xcodeproj'
-          project = Xcodeproj::Project.open(project_path)
-          
-          package_url = 'https://github.com/WireGuard/wireguard-apple.git'
-          
-          existing_package = project.root_object.package_references.find do |ref|
-            ref.repositoryURL == package_url
-          end
-          
-          unless existing_package
-            puts 'Adding WireGuardKit Swift Package...'
-            
             package_ref = project.new(Xcodeproj::Project::Object::XCRemoteSwiftPackageReference)
-            package_ref.repositoryURL = package_url
-            package_ref.requirement = { 'kind' => 'branch', 'branch' => 'master' }
-            
+            package_ref.repositoryURL = 'https://github.com/WireGuard/wireguard-apple.git'
+            package_ref.requirement = { 'kind' => 'upToNextMajorVersion', 'minimumVersion' => '1.0.0' }
             project.root_object.package_references << package_ref
-            
-            packet_tunnel_target = project.targets.find { |t| t.name == 'PacketTunnel' }
-            
-            if packet_tunnel_target
-              package_product = project.new(Xcodeproj::Project::Object::XCSwiftPackageProductDependency)
-              package_product.package = package_ref
-              package_product.product_name = 'WireGuardKit'
-              
-              packet_tunnel_target.package_product_dependencies << package_product
-              
-              puts 'WireGuardKit added to PacketTunnel target'
-            end
-            
+
+            dep = project.new(Xcodeproj::Project::Object::XCSwiftPackageProductDependency)
+            dep.package = package_ref
+            dep.product_name = 'WireGuardKit'
+            target.package_product_dependencies << dep
+
             project.save
-            puts 'Swift Package Manager setup complete!'
-          else
-            puts 'WireGuardKit package already exists'
+            puts 'PacketTunnel + WireGuardKit SPM added successfully!'
           end
-          RUBY_SPM
+          RUBYSCRIPT
 
       - name: Install pods
         script: |
           cd ios
-          pod cache clean --all
           rm -rf Pods
           NO_FLIPPER=1 pod install --repo-update
 
@@ -133,7 +100,7 @@ workflows:
 
       - name: Create export options
         script: |
-          cat > /tmp/export_options.plist << 'EXPORT_END'
+          cat > /tmp/export_options.plist << 'EXPORTOPTIONS'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -153,9 +120,7 @@ workflows:
               </dict>
           </dict>
           </plist>
-          EXPORT_END
-          
-          echo "Export options created"
+          EXPORTOPTIONS
 
       - name: Build iOS IPA
         script: |
