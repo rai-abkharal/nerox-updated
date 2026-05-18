@@ -13,36 +13,85 @@ workflows:
     scripts:
       - name: Install dependencies
         script: npm install
+
+      - name: Setup PacketTunnel Target
+        script: |
+          cd ios
+
+          # 1. WireGuardKit Podfile mein add karo
+          echo "" >> Podfile
+          echo "target 'PacketTunnel' do" >> Podfile
+          echo "  pod 'WireGuardKit', :git => 'https://github.com/WireGuard/wireguard-apple', :tag => '1.0.16-27'" >> Podfile
+          echo "end" >> Podfile
+
+          # 2. Entitlements file banao
+          python3 << PYEOF
+content = '<?xml version="1.0" encoding="UTF-8"?>\n<plist version="1.0">\n<dict>\n    <key>com.apple.developer.networking.networkextension</key>\n    <array>\n        <string>packet-tunnel-provider</string>\n    </array>\n</dict>\n</plist>'
+open('PacketTunnel/PacketTunnel.entitlements', 'w').write(content)
+print('Entitlements created!')
+PYEOF
+
+          # 3. Xcode project mein PacketTunnel target add karo
+          gem install xcodeproj --quiet
+          ruby << RUBYEOF
+require 'xcodeproj'
+project = Xcodeproj::Project.open('Nerox.xcodeproj')
+if project.targets.find { |t| t.name == 'PacketTunnel' }
+  puts "PacketTunnel target already exists, skipping."
+else
+  target = project.new_target(:app_extension, 'PacketTunnel', :ios, '13.0')
+  group = project.main_group.new_group('PacketTunnel', 'PacketTunnel')
+  file_ref = group.new_file('PacketTunnelProvider.swift')
+  target.source_build_phase.add_file_reference(file_ref)
+  target.build_configurations.each do |config|
+    config.build_settings['SWIFT_VERSION'] = '5.0'
+    config.build_settings['CODE_SIGN_STYLE'] = 'Manual'
+    config.build_settings['DEVELOPMENT_TEAM'] = '6ZN7399P3U'
+    config.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'org.reactjs.native.example.Nerox.PacketTunnel'
+    config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'PacketTunnel/PacketTunnel.entitlements'
+    config.build_settings['PROVISIONING_PROFILE_SPECIFIER'] = 'Nerox PacketTunnel'
+  end
+  project.save
+  puts "PacketTunnel target added successfully!"
+end
+RUBYEOF
+
       - name: Install pods
         script: |
           cd ios
           NO_FLIPPER=1 pod install
+
       - name: Set up code signing
         script: |
           keychain initialize
           keychain add-certificates
           xcode-project use-profiles
+
       - name: Create export options
         script: |
-          cat > /tmp/export_options.plist << EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key>
-            <string>app-store</string>
-            <key>teamID</key>
-            <string>6ZN7399P3U</string>
-            <key>signingStyle</key>
-            <string>manual</string>
-            <key>provisioningProfiles</key>
-            <dict>
-              <key>org.reactjs.native.example.Nerox</key>
-              <string>a73d87ae-dfa9-40a2-b257-f1e05e4ce5a1</string>
-            </dict>
-          </dict>
-          </plist>
-          EOF
+          python3 << PYEOF
+content = '''<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0">
+<dict>
+  <key>method</key>
+  <string>app-store</string>
+  <key>teamID</key>
+  <string>6ZN7399P3U</string>
+  <key>signingStyle</key>
+  <string>manual</string>
+  <key>provisioningProfiles</key>
+  <dict>
+    <key>org.reactjs.native.example.Nerox</key>
+    <string>a73d87ae-dfa9-40a2-b257-f1e05e4ce5a1</string>
+    <key>org.reactjs.native.example.Nerox.PacketTunnel</key>
+    <string>Nerox PacketTunnel</string>
+  </dict>
+</dict>
+</plist>'''
+open('/tmp/export_options.plist', 'w').write(content)
+print('Export options created!')
+PYEOF
+
       - name: Build iOS IPA
         script: |
           xcodebuild \
@@ -62,6 +111,7 @@ workflows:
             -archivePath build/Nerox.xcarchive \
             -exportOptionsPlist /tmp/export_options.plist \
             -exportPath build/ios/ipa
+
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
