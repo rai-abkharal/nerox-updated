@@ -18,8 +18,6 @@ workflows:
         script: |
           cd ios
 
-          sed -i '' "s/platform :ios, '[0-9.]*'/platform :ios, '15.0'/" Podfile
-
           mkdir -p PacketTunnel
 
           cat > PacketTunnel/PacketTunnel.entitlements << 'ENTITLEMENTS'
@@ -34,20 +32,6 @@ workflows:
           </dict>
           </plist>
           ENTITLEMENTS
-
-          cat > PacketTunnel/PacketTunnelProvider.swift << 'SWIFT'
-          import NetworkExtension
-          import WireGuardKit
-
-          class PacketTunnelProvider: NEPacketTunnelProvider {
-              override func startTunnel(options: [String: NSObject]?, completionHandler: @escaping (Error?) -> Void) {
-                  completionHandler(nil)
-              }
-              override func stopTunnel(with reason: NEProviderStopReason, completionHandler: @escaping () -> Void) {
-                  completionHandler()
-              }
-          }
-          SWIFT
 
           gem install xcodeproj --quiet
 
@@ -68,12 +52,12 @@ workflows:
               config.build_settings['DEVELOPMENT_TEAM'] = '6ZN7399P3U'
               config.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'org.reactjs.native.example.Nerox.PacketTunnel'
               config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'PacketTunnel/PacketTunnel.entitlements'
-              config.build_settings['PROVISIONING_PROFILE_SPECIFIER'] = 'Nerox PacketTunnel'
+              config.build_settings['PROVISIONING_PROFILE_SPECIFIER'] = ''
             end
 
+            # WireGuardKit SPM add karo
             package_ref = project.new(Xcodeproj::Project::Object::XCRemoteSwiftPackageReference)
             package_ref.repositoryURL = 'https://github.com/WireGuard/wireguard-apple.git'
-            # ← YAHI FIX HAI: version ki jagah branch use karo
             package_ref.requirement = { 'kind' => 'branch', 'branch' => 'master' }
             project.root_object.package_references << package_ref
 
@@ -83,15 +67,14 @@ workflows:
             target.package_product_dependencies << dep
 
             project.save
-            puts 'PacketTunnel + WireGuardKit SPM added successfully!'
+            puts 'PacketTunnel + WireGuardKit added!'
           end
           RUBYSCRIPT
 
       - name: Install pods
         script: |
           cd ios
-          rm -rf Pods
-          NO_FLIPPER=1 pod install --repo-update
+          NO_FLIPPER=1 pod install
 
       - name: Set up code signing
         script: |
@@ -116,8 +99,6 @@ workflows:
               <dict>
                   <key>org.reactjs.native.example.Nerox</key>
                   <string>a73d87ae-dfa9-40a2-b257-f1e05e4ce5a1</string>
-                  <key>org.reactjs.native.example.Nerox.PacketTunnel</key>
-                  <string>Nerox PacketTunnel</string>
               </dict>
           </dict>
           </plist>
