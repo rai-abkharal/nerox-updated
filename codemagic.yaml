@@ -25,36 +25,33 @@ workflows:
           echo "end" >> Podfile
 
           # 2. Entitlements file banao
-          python3 << PYEOF
-content = '<?xml version="1.0" encoding="UTF-8"?>\n<plist version="1.0">\n<dict>\n    <key>com.apple.developer.networking.networkextension</key>\n    <array>\n        <string>packet-tunnel-provider</string>\n    </array>\n</dict>\n</plist>'
-open('PacketTunnel/PacketTunnel.entitlements', 'w').write(content)
-print('Entitlements created!')
-PYEOF
+          printf '%s' '<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>com.apple.developer.networking.networkextension</key><array><string>packet-tunnel-provider</string></array></dict></plist>' > PacketTunnel/PacketTunnel.entitlements
+          echo "Entitlements created!"
 
           # 3. Xcode project mein PacketTunnel target add karo
           gem install xcodeproj --quiet
-          ruby << RUBYEOF
-require 'xcodeproj'
-project = Xcodeproj::Project.open('Nerox.xcodeproj')
-if project.targets.find { |t| t.name == 'PacketTunnel' }
-  puts "PacketTunnel target already exists, skipping."
-else
-  target = project.new_target(:app_extension, 'PacketTunnel', :ios, '13.0')
-  group = project.main_group.new_group('PacketTunnel', 'PacketTunnel')
-  file_ref = group.new_file('PacketTunnelProvider.swift')
-  target.source_build_phase.add_file_reference(file_ref)
-  target.build_configurations.each do |config|
-    config.build_settings['SWIFT_VERSION'] = '5.0'
-    config.build_settings['CODE_SIGN_STYLE'] = 'Manual'
-    config.build_settings['DEVELOPMENT_TEAM'] = '6ZN7399P3U'
-    config.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'org.reactjs.native.example.Nerox.PacketTunnel'
-    config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'PacketTunnel/PacketTunnel.entitlements'
-    config.build_settings['PROVISIONING_PROFILE_SPECIFIER'] = 'Nerox PacketTunnel'
-  end
-  project.save
-  puts "PacketTunnel target added successfully!"
-end
-RUBYEOF
+          ruby -e "
+          require 'xcodeproj'
+          project = Xcodeproj::Project.open('Nerox.xcodeproj')
+          if project.targets.find { |t| t.name == 'PacketTunnel' }
+            puts 'PacketTunnel target already exists, skipping.'
+          else
+            target = project.new_target(:app_extension, 'PacketTunnel', :ios, '13.0')
+            group = project.main_group.new_group('PacketTunnel', 'PacketTunnel')
+            file_ref = group.new_file('PacketTunnelProvider.swift')
+            target.source_build_phase.add_file_reference(file_ref)
+            target.build_configurations.each do |config|
+              config.build_settings['SWIFT_VERSION'] = '5.0'
+              config.build_settings['CODE_SIGN_STYLE'] = 'Manual'
+              config.build_settings['DEVELOPMENT_TEAM'] = '6ZN7399P3U'
+              config.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'org.reactjs.native.example.Nerox.PacketTunnel'
+              config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'PacketTunnel/PacketTunnel.entitlements'
+              config.build_settings['PROVISIONING_PROFILE_SPECIFIER'] = 'Nerox PacketTunnel'
+            end
+            project.save
+            puts 'PacketTunnel target added successfully!'
+          end
+          "
 
       - name: Install pods
         script: |
@@ -69,28 +66,8 @@ RUBYEOF
 
       - name: Create export options
         script: |
-          python3 << PYEOF
-content = '''<?xml version="1.0" encoding="UTF-8"?>
-<plist version="1.0">
-<dict>
-  <key>method</key>
-  <string>app-store</string>
-  <key>teamID</key>
-  <string>6ZN7399P3U</string>
-  <key>signingStyle</key>
-  <string>manual</string>
-  <key>provisioningProfiles</key>
-  <dict>
-    <key>org.reactjs.native.example.Nerox</key>
-    <string>a73d87ae-dfa9-40a2-b257-f1e05e4ce5a1</string>
-    <key>org.reactjs.native.example.Nerox.PacketTunnel</key>
-    <string>Nerox PacketTunnel</string>
-  </dict>
-</dict>
-</plist>'''
-open('/tmp/export_options.plist', 'w').write(content)
-print('Export options created!')
-PYEOF
+          printf '%s' '<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>method</key><string>app-store</string><key>teamID</key><string>6ZN7399P3U</string><key>signingStyle</key><string>manual</string><key>provisioningProfiles</key><dict><key>org.reactjs.native.example.Nerox</key><string>a73d87ae-dfa9-40a2-b257-f1e05e4ce5a1</string><key>org.reactjs.native.example.Nerox.PacketTunnel</key><string>Nerox PacketTunnel</string></dict></dict></plist>' > /tmp/export_options.plist
+          echo "Export options created!"
 
       - name: Build iOS IPA
         script: |
