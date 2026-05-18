@@ -20,16 +20,7 @@ workflows:
           
           sed -i '' "s/platform :ios, '[0-9.]*'/platform :ios, '15.0'/" Podfile
           
-          cat >> Podfile << 'PODFILE_END'
-
-          target 'PacketTunnel' do
-            platform :ios, '15.0'
-            pod 'WireGuardKit', :git => 'https://github.com/WireGuard/wireguard-apple.git', :branch => 'master'
-          end
-          PODFILE_END
-          
-          echo "Podfile updated with PacketTunnel target"
-          cat Podfile
+          echo "Podfile updated to iOS 15.0"
           
           mkdir -p PacketTunnel
           
@@ -52,16 +43,20 @@ workflows:
           
           ruby << 'RUBY_END'
           require 'xcodeproj'
+          
           project_path = 'Nerox.xcodeproj'
           project = Xcodeproj::Project.open(project_path)
+          
           if project.targets.find { |t| t.name == 'PacketTunnel' }
             puts 'PacketTunnel target already exists, skipping.'
           else
             puts 'Creating PacketTunnel target...'
+            
             target = project.new_target(:app_extension, 'PacketTunnel', :ios, '15.0')
             group = project.main_group.new_group('PacketTunnel', 'PacketTunnel')
             file_ref = group.new_file('PacketTunnelProvider.swift')
             target.source_build_phase.add_file_reference(file_ref)
+            
             target.build_configurations.each do |config|
               config.build_settings['SWIFT_VERSION'] = '5.0'
               config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
@@ -71,17 +66,64 @@ workflows:
               config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'PacketTunnel/PacketTunnel.entitlements'
               config.build_settings['PROVISIONING_PROFILE_SPECIFIER'] = 'Nerox PacketTunnel'
             end
+            
             project.save
             puts 'PacketTunnel target created successfully!'
           end
           RUBY_END
+
+      - name: Add WireGuardKit via Swift Package Manager
+        script: |
+          cd ios
+          
+          gem install xcodeproj --quiet
+          
+          ruby << 'RUBY_SPM'
+          require 'xcodeproj'
+          
+          project_path = 'Nerox.xcodeproj'
+          project = Xcodeproj::Project.open(project_path)
+          
+          package_url = 'https://github.com/WireGuard/wireguard-apple.git'
+          
+          existing_package = project.root_object.package_references.find do |ref|
+            ref.repositoryURL == package_url
+          end
+          
+          unless existing_package
+            puts 'Adding WireGuardKit Swift Package...'
+            
+            package_ref = project.new(Xcodeproj::Project::Object::XCRemoteSwiftPackageReference)
+            package_ref.repositoryURL = package_url
+            package_ref.requirement = { 'kind' => 'branch', 'branch' => 'master' }
+            
+            project.root_object.package_references << package_ref
+            
+            packet_tunnel_target = project.targets.find { |t| t.name == 'PacketTunnel' }
+            
+            if packet_tunnel_target
+              package_product = project.new(Xcodeproj::Project::Object::XCSwiftPackageProductDependency)
+              package_product.package = package_ref
+              package_product.product_name = 'WireGuardKit'
+              
+              packet_tunnel_target.package_product_dependencies << package_product
+              
+              puts 'WireGuardKit added to PacketTunnel target'
+            end
+            
+            project.save
+            puts 'Swift Package Manager setup complete!'
+          else
+            puts 'WireGuardKit package already exists'
+          end
+          RUBY_SPM
 
       - name: Install pods
         script: |
           cd ios
           pod cache clean --all
           rm -rf Pods
-          NO_FLIPPER=1 pod install --repo-update --verbose
+          NO_FLIPPER=1 pod install --repo-update
 
       - name: Set up code signing
         script: |
